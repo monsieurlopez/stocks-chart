@@ -1,0 +1,12 @@
+.div1{
+    background-color: rgb(241, 245, 241);
+    text-align: center;
+};
+
+.display-3{
+    color: rgb(18, 18, 243);
+};
+
+#elementItens {
+    cursor: pointer;
+};
