@@ -1,8 +1,8 @@
-
 $(document).ready(function() {
 
   const searchResults = $('#search-results');
   let selectedSymbol = '';
+  let selectedName = '';
 
 
   try { 
@@ -30,7 +30,7 @@ $(document).ready(function() {
       equityUSA.forEach(result => {
         const symbol = result['1. symbol'];
         const name = result['2. name'];
-        const li = `<li id="elementItens" class="list-group-item list-group-item-action list-group-item-primary" data-symbol="${symbol}">${symbol} - ${name}</li>`;
+        const li = `<li id="elementItens" class="list-group-item list-group-item-action list-group-item-primary" data-symbol="${symbol}" data-name="${name}">${symbol} - ${name}</li>`;
         searchResults.append(li);
       });
 
@@ -44,6 +44,7 @@ $(document).ready(function() {
       //We handle the click event of the browser to select the action to be displayed.
       searchResults.on('click', 'li', function() {
         selectedSymbol = $(this).data('symbol');
+        selectedName = $(this).data('name');
         console.log(selectedSymbol);
       }); 
     });
@@ -55,16 +56,11 @@ $(document).ready(function() {
 /////////////////Second part of the code/////////////////////////////////////////
 //API requests: in this part of the code we make the second API call
 
-let symbol = '';
 //This call is executed when we click to search
 $('#selectedStock').on('click', async () => {
   //We run the function again to update the new data and display it in the graphic
-  function getSelectedStock() {
-    return selectedSymbol;
-  };
-  getSelectedStock();
-  myLine.resetZoom();
-
+ 
+  
   try {
 
     const apiKey = 'DV9PEFFGLTQD90K2';
@@ -72,7 +68,23 @@ $('#selectedStock').on('click', async () => {
     const response = await fetch (API);
     const data = await response.json();
     console.log(data);
-    
+
+     function getSelectedStock() {
+      return selectedSymbol;
+    };
+    function AddStockSelected(selectedName) {
+      $("#ShowStockSelected").toggleClass("d-none d-block");
+
+      const closeButton = '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+      const newDiv = '<div class="alert alert-dismissible fade show" role="alert"><span>' + selectedName + '</span>' + closeButton + '</div>';
+
+      $('#ShowStockSelected').append(newDiv);
+    }
+    getSelectedStock();
+    AddStockSelected(selectedName);
+    window.myLine.resetZoom();
+    window.myLine.update();
+
     const companyName = data['Meta Data']['2. Symbol'];
     const monthlyData = data['Monthly Adjusted Time Series'];
 
@@ -115,6 +127,25 @@ $('#selectedStock').on('click', async () => {
 });
 
   /***********************************************************************/
+  $(document).on('click', '.btn-close', function() {
+    $('#search-input').val('');
+    console.log("Boton cierre");
+
+    // Destroy existing chart instance and create a new one with empty data
+
+    function removeData(chart) {
+      chart.data.labels = [];
+      chart.data.datasets.label = [];
+      chart.data.datasets.forEach((dataset) => {
+        dataset.data = [];
+      });
+      chart.update();
+    }
+    
+  removeData(myLine); 
+  window.myLine.update();
+
+  });
 
   $("#resetZoom").click(function() {
     window.myLine.resetZoom();
