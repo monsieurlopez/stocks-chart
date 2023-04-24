@@ -3,6 +3,7 @@ $(document).ready(function() {
   const searchResults = $('#search-results');
   let selectedSymbol = '';
   let selectedName = '';
+  let searchActive = true;
 
 
   try { 
@@ -36,9 +37,12 @@ $(document).ready(function() {
 
       //We handle the click event on the possible suggestions provided to the user 
       $('#search-results').on('click', 'li', (event) => {
-        const value = $(event.target).text().trim();
-        $('#search-input').val(value);
-        $('#search-results').empty();
+        if (searchActive) {
+          const value = $(event.target).text().trim();
+          $('#search-input').val(value);
+          $('#search-results').empty();
+        }
+        
       });
 
       //We handle the click event of the browser to select the action to be displayed.
@@ -73,13 +77,22 @@ $('#selectedStock').on('click', async () => {
       return selectedSymbol;
     };
     function AddStockSelected(selectedName) {
-      $("#ShowStockSelected").toggleClass("d-none d-block");
-
-      const closeButton = '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
-      const newDiv = '<div class="alert alert-dismissible fade show" role="alert"><span>' + selectedName + '</span>' + closeButton + '</div>';
-
-      $('#ShowStockSelected').append(newDiv);
+      const closeButton = '<button type="button" class="btn-close" aria-label="Close"></button>';
+      const StockLi = '<li class="list-group-item list-group-item-action list-group-item-primary "><span>' + selectedName + '</span></li>';
+    
+      const $StockLi = $(StockLi); 
+      $StockLi.append(closeButton);
+      $StockLi.find('.btn-close').click(function() {
+        $(this).closest('li').remove(); 
+        searchActive = true;
+        $('#search-input').prop('disabled', false);
+      });
+    
+      $('#ShowStockSelected').append($StockLi);
+      searchActive = false;
+      $('#search-input').prop('disabled', true);
     }
+    
     getSelectedStock();
     AddStockSelected(selectedName);
     window.myLine.resetZoom();
@@ -128,8 +141,11 @@ $('#selectedStock').on('click', async () => {
 
   /***********************************************************************/
   $(document).on('click', '.btn-close', function() {
-    $('#search-input').val('');
     console.log("Boton cierre");
+    $('#search-input').val('');
+    console.log("Valores a cero");
+    $(".btn-close").removeClass("#ShowStockSelected");
+    console.log("Se elimina el li");
 
     // Destroy existing chart instance and create a new one with empty data
 
