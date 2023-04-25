@@ -63,17 +63,61 @@ $(document).ready(function() {
 //This call is executed when we click to search
 $('#selectedStock').on('click', async () => {
   //We run the function again to update the new data and display it in the graphic
+  let companyName, monthlyData;
  
-  
   try {
 
     const apiKey = 'DV9PEFFGLTQD90K2';
-    const API = (`https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol=${selectedSymbol}&apikey=${apiKey}`);
-    const response = await fetch (API);
+    const API = `https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol=${selectedSymbol}&apikey=${apiKey}`;
+    const response = await fetch(API);
     const data = await response.json();
     console.log(data);
+    
+    if (!data || !data['Meta Data'] || !data['Meta Data']['2. Symbol']) {
+      const newAPI = `https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol=${selectedSymbol}&apikey=${apiKey}`;
+      const newResponse = await fetch(newAPI);
+      const newData = await newResponse.json();
 
-     function getSelectedStock() {
+      // Actualizar datos y variables globales
+      companyName = newData['2. Symbol'];
+      monthlyData = newData['Monthly Adjusted Time Series'];
+
+    } else {
+        companyName = data['2. Symbol'];
+        monthlyData = data['Monthly Adjusted Time Series'];
+
+        //We create a new array with the constants we need
+        const lastDate = Object.keys(data['Monthly Adjusted Time Series'])[0];
+        const lastData = data['Monthly Adjusted Time Series'][lastDate];
+
+        const lastPrice = [{    
+          year: lastDate.split("-")[0],
+          closePrice: lastData['4. close'],
+        }];
+
+        const decemberData = Object.entries(monthlyData)
+          .filter(([key, value]) => {
+            const date = new Date(key);
+            return date.getMonth() === 11;
+          })
+          .map(([key, value]) => {
+            const year = key.slice(0, 4);
+            const closePrice = value['4. close'];
+            return { year, closePrice };
+          });
+        //We add the last price to our array:
+        decemberData.unshift(lastPrice[0]);
+        
+        config.data.labels = decemberData.map(d => d.year);
+        config.data.datasets[0].data = decemberData.map(d => d.closePrice);
+        config.data.datasets[0].label = selectedSymbol;
+
+        //We automatically add the limits according to the maximum values of each action:
+        config.options.plugins.zoom.zoom.limits.y.max = Math.max(...decemberData.map(d => d.closePrice)) + 5;
+        config.options.plugins.zoom.zoom.limits.x.max = Math.max(...decemberData.map(d => d.year)) + 2;
+    };
+    
+    function getSelectedStock() {
       return selectedSymbol;
     };
     function AddStockSelected(selectedName) {
@@ -91,47 +135,13 @@ $('#selectedStock').on('click', async () => {
       $('#ShowStockSelected').append($StockLi);
       searchActive = false;
       $('#search-input').prop('disabled', true);
+      //config.data.datasets.label = selectedSymbol;
     }
     
     getSelectedStock();
     AddStockSelected(selectedName);
     window.myLine.resetZoom();
     window.myLine.update();
-
-    const companyName = data['Meta Data']['2. Symbol'];
-    const monthlyData = data['Monthly Adjusted Time Series'];
-
-    //We create a new array with the constants we need
-    const lastDate = Object.keys(data['Monthly Adjusted Time Series'])[0];
-    const lastData = data['Monthly Adjusted Time Series'][lastDate];
-
-    const lastPrice = [{    
-      year: lastDate.split("-")[0],
-      closePrice: lastData['4. close'],
-    }];
-
-    const decemberData = Object.entries(monthlyData)
-      .filter(([key, value]) => {
-        const date = new Date(key);
-        return date.getMonth() === 11;
-      })
-      .map(([key, value]) => {
-        const year = key.slice(0, 4);
-        const closePrice = value['4. close'];
-        return { year, closePrice };
-      });
-    //We add the last price to our array:
-    decemberData.unshift(lastPrice[0]);
-    
-    config.data.labels = decemberData.map(d => d.year);
-    config.data.datasets[0].data = decemberData.map(d => d.closePrice);
-    config.data.datasets[0].label = companyName;
-    
-    window.myLine.update();
-
-    //We automatically add the limits according to the maximum values of each action:
-    config.options.plugins.zoom.zoom.limits.y.max = Math.max(...decemberData.map(d => d.closePrice)) + 5;
-    config.options.plugins.zoom.zoom.limits.x.max = Math.max(...decemberData.map(d => d.year)) + 2;
 
   } catch (error) {
     console.log(error);
@@ -141,25 +151,24 @@ $('#selectedStock').on('click', async () => {
 
   /***********************************************************************/
   $(document).on('click', '.btn-close', function() {
-    console.log("Boton cierre");
+    
     $('#search-input').val('');
-    console.log("Valores a cero");
     $(".btn-close").removeClass("#ShowStockSelected");
-    console.log("Se elimina el li");
+    
 
     // Destroy existing chart instance and create a new one with empty data
 
     function removeData(chart) {
       chart.data.labels = [];
-      chart.data.datasets.label = [];
+      chart.data.datasets.label = "";
       chart.data.datasets.forEach((dataset) => {
         dataset.data = [];
       });
       chart.update();
     }
     
-  removeData(myLine); 
-  window.myLine.update();
+    removeData(myLine); 
+    window.myLine.update();
 
   });
 
@@ -294,7 +303,6 @@ $('#selectedStock').on('click', async () => {
     var ctx = $("#canvas");
     window.myLine = new Chart(ctx, config);
   });
-
 
 });
 
